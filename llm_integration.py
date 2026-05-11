@@ -1,57 +1,61 @@
+import torch
 from transformers import pipeline
 
 # -----------------------------
-# Load Language Model
+# Load Model
 # -----------------------------
+# Check if GPU is available
+device = 0 if torch.cuda.is_available() else -1  # 0 for GPU, -1 for CPU
+print(f"Using device: {'GPU (CUDA)' if device == 0 else 'CPU'}")
+
 generator = pipeline(
     "text-generation",
-    model="gpt2"
+    model="gpt2",
+    device=device
 )
 
 # -----------------------------
-# Simple Document Database
+# Tools
 # -----------------------------
-documents = [
-    "Python is a programming language.",
-    "Transformers are used in NLP.",
-    "RAG combines retrieval and generation.",
-    "Machine learning enables intelligent systems."
-]
+def weather_tool():
+    return "Today's weather is sunny."
+
+def calculator_tool(a, b):
+    return a + b
+
+def search_tool(query):
+    docs = {
+        "AI": "Artificial Intelligence enables machines to think.",
+        "Python": "Python is widely used in AI."
+    }
+
+    return docs.get(query, "No information found.")
 
 # -----------------------------
-# Simple Search Function
+# Simple Agent
 # -----------------------------
-def retrieve_document(query):
-    for doc in documents:
-        if query.lower() in doc.lower():
-            return doc
+def agent(user_input):
 
-    return "No relevant document found."
+    if "weather" in user_input.lower():
+        return weather_tool()
 
-# -----------------------------
-# User Query
-# -----------------------------
-query = "Transformers"
+    elif "add" in user_input.lower():
+        return calculator_tool(5, 3)
 
-retrieved_doc = retrieve_document(query)
+    elif "python" in user_input.lower():
+        return search_tool("Python")
 
-# -----------------------------
-# Create Prompt
-# -----------------------------
-prompt = f"""
-Context: {retrieved_doc}
+    else:
+        result = generator(
+            user_input,
+            max_length=50
+        )
 
-Question: Explain this concept.
-Answer:
-"""
+        return result[0]["generated_text"]
 
 # -----------------------------
-# Generate Response
+# Test Agent
 # -----------------------------
-result = generator(
-    prompt,
-    max_length=100,
-    num_return_sequences=1
-)
-
-print(result[0]["generated_text"])
+print(agent("Tell me about Python"))
+print(agent("What is the weather today?"))
+print(agent("add numbers"))
